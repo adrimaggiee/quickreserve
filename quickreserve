@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>
+QuickReserve - Sistema Administrativo de Reservas
+</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+font-family:Arial, Helvetica, sans-serif;
+background:
+linear-gradient(to right, #fbcfe8, #fdf2f8);
+color:black;
+}
+
+header{
+background:#ec4899;
+color:white;
+padding:25px;
+text-align:center;
+box-shadow:0 2px 10px rgba(0,0,0,0.2);
+}
+
+header h1{
+font-size:40px;
+margin-bottom:10px;
+}
+
+.container{
+width:90%;
+max-width:1000px;
+margin:30px auto;
+}
+
+.card{
+background:white;
+padding:25px;
+border-radius:14px;
+margin-bottom:25px;
+box-shadow:0 2px 12px rgba(0,0,0,0.1);
+}
+
+.card h2{
+color:black;
+margin-bottom:20px;
+}
+
+input,
+select{
+width:100%;
+padding:12px;
+margin-top:10px;
+margin-bottom:15px;
+border:1px solid #f9a8d4;
+border-radius:8px;
+font-size:15px;
+}
+
+button{
+background:#ec4899;
+color:white;
+border:none;
+padding:12px 20px;
+border-radius:8px;
+cursor:pointer;
+font-size:15px;
+transition:0.3s;
+}
+
+button:hover{
+background:#db2777;
+}
+
+.logout{
+background:#be185d;
+margin-top:15px;
+}
+
+.logout:hover{
+background:#9d174d;
+}
+
+.mensaje{
+margin-top:15px;
+padding:12px;
+border-radius:8px;
+display:none;
+font-weight:bold;
+}
+
+.error{
+background:#fee2e2;
+color:#991b1b;
+}
+
+.success{
+background:#dcfce7;
+color:#166534;
+}
+
+.reserva{
+background:#fce7f3;
+padding:18px;
+border-radius:10px;
+margin-bottom:15px;
+border-left:6px solid #ec4899;
+}
+
+.confirmada{
+border-left:6px solid #16a34a;
+}
+
+.cancelada{
+border-left:6px solid #dc2626;
+opacity:0.8;
+}
+
+.dashboard{
+background:#fbcfe8;
+padding:15px;
+border-radius:10px;
+margin-bottom:20px;
+}
+
+.verde{
+color:#16a34a;
+}
+
+.rojo{
+color:#dc2626;
+}
+
+footer{
+text-align:center;
+padding:20px;
+background:#831843;
+color:white;
+margin-top:40px;
+}
+
+@media(max-width:768px){
+
+header h1{
+font-size:30px;
+}
+
+.container{
+width:95%;
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+<h1>QuickReserve</h1>
+
+<p>
+Panel Administrativo de Reservas de Habitaciones
+</p>
+
+</header>
+
+<div class="container">
+
+<div class="card">
+
+<h2>
+Acceso del Agente de Reservas
+</h2>
+
+<p style="margin-bottom:15px;">
+
+Ingrese las credenciales del empleado encargado
+de gestionar las reservas.
+
+</p>
+
+<input
+type="email"
+id="correo"
+placeholder="Correo del agente"
+>
+
+<input
+type="password"
+id="password"
+placeholder="Contraseña"
+>
+
+<button onclick="iniciarSesion()">
+
+Iniciar Sesión
+
+</button>
+
+<button
+class="logout"
+onclick="cerrarSesion()"
+>
+
+Cerrar Sesión
+
+</button>
+
+<div
+id="mensajeLogin"
+class="mensaje"
+></div>
+
+</div>
+
+<div class="card">
+
+<h2>
+Nueva Reserva de Habitación
+</h2>
+
+<select id="tipoHabitacion">
+
+<option value="">
+Seleccione una habitación
+</option>
+
+<option>
+Habitación Individual
+</option>
+
+<option>
+Habitación Doble
+</option>
+
+<option>
+Suite Ejecutiva
+</option>
+
+<option>
+Suite Familiar
+</option>
+
+</select>
+
+<input
+type="text"
+id="cliente"
+placeholder="Nombre del cliente"
+>
+
+<label>
+Fecha de Check-In
+</label>
+
+<input
+type="date"
+id="checkin"
+>
+
+<label>
+Fecha de Check-Out
+</label>
+
+<input
+type="date"
+id="checkout"
+>
+
+<button onclick="crearReserva()">
+
+Registrar Reserva
+
+</button>
+
+<div
+id="mensajeReserva"
+class="mensaje"
+></div>
+
+</div>
+
+<div class="card">
+
+<h2>
+Panel del Agente
+</h2>
+
+<div
+id="usuarioActivo"
+class="dashboard"
+>
+
+Ningún agente ha iniciado sesión.
+
+</div>
+
+<div
+id="estadisticas"
+class="dashboard"
+></div>
+
+<div id="listaReservas"></div>
+
+</div>
+
+</div>
+
+<footer>
+
+QuickReserve -
+Sistema Administrativo de Reservas de Habitaciones
+
+</footer>
+
+<script>
+
+/* AGENTE */
+
+let agente = {
+
+correo:'admin@quickreserve.com',
+
+password:'admin123',
+
+nombre:'Agente de Reservas'
+
+};
+
+/* SESIÓN */
+
+let agenteActivo =
+JSON.parse(
+localStorage.getItem('agenteActivo')
+) || null;
+
+/* RESERVAS */
+
+let reservas =
+JSON.parse(
+localStorage.getItem('reservas')
+) || [];
+
+/* GUARDAR DATOS */
+
+function guardarDatos(){
+
+localStorage.setItem(
+'reservas',
+JSON.stringify(reservas)
+);
+
+}
+
+/* MENSAJES */
+
+function mostrarMensaje(id, mensaje, tipo){
+
+const elemento =
+document.getElementById(id);
+
+elemento.style.display = 'block';
+
+elemento.innerHTML = mensaje;
+
+elemento.className =
+'mensaje ' + tipo;
+
+setTimeout(() => {
+
+elemento.style.display = 'none';
+
+}, 3000);
+
+}
+
+/* LOGIN */
+
+function iniciarSesion(){
+
+let correo =
+document.getElementById(
+'correo'
+).value;
+
+let password =
+document.getElementById(
+'password'
+).value;
+
+if(
+correo !== agente.correo ||
+password !== agente.password
+){
+
+mostrarMensaje(
+'mensajeLogin',
+'Credenciales incorrectas.',
+'error'
+);
+
+return;
+
+}
+
+agenteActivo = agente;
+
+/* GUARDAR SESIÓN */
+
+localStorage.setItem(
+'agenteActivo',
+JSON.stringify(agenteActivo)
+);
+
+/* RECARGAR RESERVAS */
+
+reservas =
+JSON.parse(
+localStorage.getItem('reservas')
+) || [];
+
+/* PANEL */
+
+mostrarPanel();
+
+mostrarMensaje(
+'mensajeLogin',
+'Sesión iniciada correctamente.',
+'success'
+);
+
+}
+
+/* CERRAR SESIÓN */
+
+function cerrarSesion(){
+
+agenteActivo = null;
+
+localStorage.removeItem(
+'agenteActivo'
+);
+
+document.getElementById(
+'usuarioActivo'
+).innerHTML =
+
+'Ningún agente ha iniciado sesión.';
+
+document.getElementById(
+'listaReservas'
+).innerHTML = '';
+
+document.getElementById(
+'estadisticas'
+).innerHTML = '';
+
+mostrarMensaje(
+'mensajeLogin',
+'Sesión cerrada correctamente.',
+'success'
+);
+
+}
+
+/* MOSTRAR PANEL */
+
+function mostrarPanel(){
+
+document.getElementById(
+'usuarioActivo'
+).innerHTML =
+
+`
+<strong>Empleado Activo:</strong>
+${agente.nombre}
+
+<br><br>
+
+<strong>Correo:</strong>
+${agente.correo}
+
+<br><br>
+
+<strong>Horario Oficial:</strong>
+Check-In 3:00 PM |
+Check-Out 11:00 AM
+`;
+
+mostrarReservas();
+
+}
+
+/* CREAR RESERVA */
+
+function crearReserva(){
+
+if(agenteActivo === null){
+
+mostrarMensaje(
+'mensajeReserva',
+'Debe iniciar sesión primero.',
+'error'
+);
+
+return;
+
+}
+
+let tipoHabitacion =
+document.getElementById(
+'tipoHabitacion'
+).value;
+
+let cliente =
+document.getElementById(
+'cliente'
+).value;
+
+let checkin =
+document.getElementById(
+'checkin'
+).value;
+
+let checkout =
+document.getElementById(
+'checkout'
+).value;
+
+if(
+tipoHabitacion === '' ||
+cliente === '' ||
+checkin === '' ||
+checkout === ''
+){
+
+mostrarMensaje(
+'mensajeReserva',
+'Complete todos los campos.',
+'error'
+);
+
+return;
+
+}
+
+let fechaActual =
+new Date().toISOString().split('T')[0];
+
+if(checkin < fechaActual){
+
+mostrarMensaje(
+'mensajeReserva',
+'No se permiten fechas pasadas.',
+'error'
+);
+
+return;
+
+}
+
+if(checkout <= checkin){
+
+mostrarMensaje(
+'mensajeReserva',
+'La fecha de salida debe ser posterior al check-in.',
+'error'
+);
+
+return;
+
+}
+
+/* VALIDAR DISPONIBILIDAD */
+
+let habitacionOcupada =
+reservas.find(reserva =>
+
+reserva.tipoHabitacion === tipoHabitacion &&
+
+reserva.estado === 'Confirmada' &&
+
+(
+checkin < reserva.checkout &&
+checkout > reserva.checkin
+)
+
+);
+
+if(habitacionOcupada){
+
+mostrarMensaje(
+'mensajeReserva',
+'La habitación ya está reservada en esas fechas.',
+'error'
+);
+
+return;
+
+}
+
+/* CREAR RESERVA */
+
+let numeroReserva =
+Math.floor(Math.random() * 100000);
+
+let fechaCreacion =
+new Date().toLocaleDateString();
+
+reservas.push({
+
+numeroReserva,
+
+tipoHabitacion,
+
+cliente,
+
+checkin,
+
+checkout,
+
+fechaCreacion,
+
+estado:'Confirmada'
+
+});
+
+/* GUARDAR */
+
+guardarDatos();
+
+/* ACTUALIZAR */
+
+mostrarReservas();
+
+mostrarMensaje(
+'mensajeReserva',
+'Reserva registrada correctamente.',
+'success'
+);
+
+/* LIMPIAR */
+
+document.getElementById(
+'tipoHabitacion'
+).value = '';
+
+document.getElementById(
+'cliente'
+).value = '';
+
+document.getElementById(
+'checkin'
+).value = '';
+
+document.getElementById(
+'checkout'
+).value = '';
+
+}
+
+/* MOSTRAR RESERVAS */
+
+function mostrarReservas(){
+
+const lista =
+document.getElementById(
+'listaReservas'
+);
+
+lista.innerHTML = '';
+
+let activas =
+reservas.filter(
+
+reserva =>
+reserva.estado === 'Confirmada'
+
+).length;
+
+document.getElementById(
+'estadisticas'
+).innerHTML =
+
+`
+<strong>
+Total de reservas registradas:
+</strong>
+
+${reservas.length}
+
+<br><br>
+
+<strong>
+Reservas activas:
+</strong>
+
+${activas}
+`;
+
+reservas.forEach(
+
+(reserva, index) => {
+
+const nuevaReserva =
+document.createElement('div');
+
+nuevaReserva.classList.add(
+'reserva'
+);
+
+if(
+reserva.estado === 'Cancelada'
+){
+
+nuevaReserva.classList.add(
+'cancelada'
+);
+
+}else{
+
+nuevaReserva.classList.add(
+'confirmada'
+);
+
+}
+
+nuevaReserva.innerHTML =
+
+`
+<strong>
+Número de Reserva:
+</strong>
+
+#${reserva.numeroReserva}
+
+<br><br>
+
+<strong>
+Habitación:
+</strong>
+
+${reserva.tipoHabitacion}
+
+<br><br>
+
+<strong>
+Cliente:
+</strong>
+
+${reserva.cliente}
+
+<br><br>
+
+<strong>
+Check-In:
+</strong>
+
+${reserva.checkin}
+- 3:00 PM
+
+<br><br>
+
+<strong>
+Check-Out:
+</strong>
+
+${reserva.checkout}
+- 11:00 AM
+
+<br><br>
+
+<strong>
+Reserva creada el:
+</strong>
+
+${reserva.fechaCreacion}
+
+<br><br>
+
+<strong>
+Estado:
+</strong>
+
+<span class="${
+reserva.estado === 'Confirmada'
+? 'verde'
+: 'rojo'
+}">
+
+${reserva.estado}
+
+</span>
+
+<br><br>
+
+${
+reserva.estado === 'Confirmada'
+
+?
+
+`<button onclick="cancelarReserva(${index})">
+
+Cancelar Reserva
+
+</button>`
+
+:
+
+''
+
+}
+
+`;
+
+lista.appendChild(
+nuevaReserva
+);
+
+});
+
+}
+
+/* CANCELAR */
+
+function cancelarReserva(index){
+
+reservas[index]
+.estado = 'Cancelada';
+
+guardarDatos();
+
+mostrarReservas();
+
+}
+
+/* RECUPERAR SESIÓN */
+
+if(agenteActivo){
+
+mostrarPanel();
+
+}
+
+</script>
+
+</body>
+</html>
